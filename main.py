@@ -5,6 +5,7 @@ from faker import Faker
 from random import randint, choice
 import string
 
+from distutils.util import strtobool
 from utils import Logger
 
 logger = Logger()
@@ -19,6 +20,15 @@ class Generator():
 		with open('config.json') as file:
 			self.config = json.load(file)
 			file.close()
+
+		"""
+		Deals with user entered emails
+		"""		
+		with open('info.json') as file:
+			self.info = json.load(file)
+			file.close()
+		self.count = 0
+
 
 	def __generate_password(self):
 		"""
@@ -37,7 +47,7 @@ class Generator():
 		return password
 
 		
-	def generate(self):
+	def generate(self,customize):
 		"""
 		Creates an account and returns email/password combination
 		"""
@@ -52,6 +62,7 @@ class Generator():
 			formUrl = soup.find('form')['action']
 			secureKey = soup.find('input', {'name': 'dwfrm_mipersonalinfo_securekey'})['value']
 			name = fake.name()
+			print('name is ' + name)
 			data = {
 				'dwfrm_mipersonalinfo_firstname': name.split()[0],
 				'dwfrm_mipersonalinfo_lastname': name.split()[1],
@@ -67,7 +78,16 @@ class Generator():
 			soup = bs(r.content, "html.parser")
 			formUrl = soup.find('form')['action']
 			secureKey = soup.find('input', {'name': 'dwfrm_milogininfo_securekey'})['value']
-			email = "{}{}{}@{}".format(name.split()[0], name.split()[1], randint(111,999), self.config['domain'])
+			# if customize, then a read from self.info would be needed
+			if customize:
+				print('email is ' + self.info['emails'][self.count]) 
+				email = self.info['emails'][self.count]
+				self.count += 1
+				# if self.count >= self.info['amount']
+				# 	return False
+			else:	
+				email = "{}{}{}@{}".format(name.split()[0], name.split()[1], randint(111,999), self.config['domain'])
+			
 			password = self.__generate_password()
 			data = {
 				'dwfrm_milogininfo_email': email,
@@ -100,16 +120,38 @@ if __name__ == '__main__':
 	createdAccounts = []
 	logger.log("Adidas Account Gen | v2.0")
 	logger.log("[made by @ryan9918_]")
+	logger.log("[Edit by @Shane]")
 	logger.log("=============================================")
+	valid = {"yes": True, "y": True,
+             "no": False, "n": False}
+
+	customize = strtobool(input("[ Source of Emails ] Customize[y/n]: "))
+	# print(customize)
+
 	num = input("[    USER    ] Number of accounts: ")
-	for x in range(int(num)):
-		success, email, password = generator.generate()
-		if success:
-			logger.success("Success creating account {}:{}".format(email, password))
-			createdAccounts.append('{}:{}'.format(email, password))
-		else:
-			logger.error("Failed creating account")
-	with open('accounts.txt', 'w') as file:
+	# Customize VS Random source of emails
+	if customize: 
+		print('Customized process is triggered')
+
+		for x in range(int(num)):
+			success, email, password = generator.generate(True)
+			if success:
+				logger.success("Success creating account {}:{}".format(email, password))
+				createdAccounts.append('{}:{}'.format(email, password))
+			else:
+				logger.error("Failed creating customized account")
+	else:
+		for x in range(int(num)):
+			print('Random process is triggered')
+
+			success, email, password = generator.generate(False)
+			if success:
+				logger.success("Success creating account {}:{}".format(email, password))
+				createdAccounts.append('{}:{}'.format(email, password))
+			else:
+				logger.error("Failed creating random account")
+
+	with open('accounts.txt', 'a') as file:
 		for account in createdAccounts:
 			file.write('{}\n'.format(account))
 		file.close()

@@ -1,0 +1,15 @@
+{
+   "customize": true, 
+   "amount" : 0,
+   
+	"password": {
+		"random": true,
+		"password": "Password123"
+   },
+   
+   "emails" : [
+
+   ]
+}
+
+
